@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#123047">
+<meta name="description" content="Calculateur personnel de calories, protéines, repas et poids. Données sauvegardées sur cet appareil.">
+<link rel="manifest" href="manifest.json">
+<title>Mon suivi calories</title>
+<style>
+:root{--navy:#123047;--teal:#168a78;--bg:#f3f6f7;--card:#fff;--muted:#61717a;--line:#dce5e8;--orange:#e58a36;--red:#b83a32}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#20323b;padding-bottom:calc(26px + env(safe-area-inset-bottom))}
+header{background:var(--navy);color:white;padding:22px 18px 18px;border-radius:0 0 22px 22px}header h1{margin:0 0 5px;font-size:23px}header p{margin:0;color:#d9e7ed;font-size:13px}
+main{max-width:760px;margin:auto;padding:14px}.tabs{display:flex;gap:7px;overflow:auto;margin:0 0 14px}.tab{border:1px solid var(--line);background:white;border-radius:999px;padding:10px 14px;white-space:nowrap;font-weight:650;color:var(--navy)}.tab.active{background:var(--teal);color:white;border-color:var(--teal)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:17px;padding:16px;margin-bottom:13px;box-shadow:0 2px 8px #17344408}
+h2{font-size:17px;margin:0 0 12px;color:var(--navy)}h3{font-size:14px;margin:14px 0 8px;color:var(--navy)}
+.stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.stat{background:#edf6f3;border-radius:13px;padding:12px}.stat small{display:block;color:var(--muted);font-size:12px}.stat strong{font-size:23px;color:var(--teal)}.bar{height:9px;background:#e5ecee;border-radius:99px;overflow:hidden;margin:9px 0}.bar span{display:block;height:100%;background:var(--teal);width:0%}
+label{display:block;font-size:13px;font-weight:650;margin:10px 0 5px;color:#31464f}input,select{width:100%;padding:11px 12px;border:1px solid #cbd8dd;border-radius:10px;font:inherit;background:white;color:#1e3038}button{font:inherit;cursor:pointer}.primary{border:0;background:var(--teal);color:white;font-weight:700;padding:12px 15px;border-radius:11px;width:100%;margin-top:12px}.secondary{border:1px solid var(--line);background:white;color:var(--navy);padding:9px 12px;border-radius:10px;font-weight:650}.danger{color:var(--red);border-color:#efcfcc}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.foodrow,.logrow,.weighrow{display:flex;align-items:center;gap:9px;border-top:1px solid var(--line);padding:10px 0}.foodrow:first-child,.logrow:first-child,.weighrow:first-child{border-top:0}.grow{flex:1;min-width:0}.muted{color:var(--muted);font-size:12px}.kcal{font-weight:750;color:var(--navy);white-space:nowrap}.smallbtn{border:1px solid var(--line);border-radius:8px;background:white;padding:6px 8px}.hidden{display:none!important}.notice{font-size:12px;line-height:1.5;color:var(--muted)}.warning{background:#fff4e9;border:1px solid #f4d3b2;border-radius:12px;padding:12px;font-size:13px;line-height:1.5;color:#714018}.ok{background:#edf6f3;padding:12px;border-radius:12px;font-size:13px}.foot{text-align:center;color:var(--muted);font-size:11px;padding:8px}
+@media(min-width:600px){.stats{grid-template-columns:repeat(4,minmax(0,1fr))}}
+</style>
+</head>
+<body>
+<header><h1>Mon suivi calories</h1><p>Repas, calories, protéines et poids — tes données restent sur cet appareil.</p></header>
+<main>
+<nav class="tabs" aria-label="Sections">
+<button class="tab active" data-tab="today">Aujourd’hui</button><button class="tab" data-tab="add">Ajouter un repas</button><button class="tab" data-tab="weight">Mon poids</button><button class="tab" data-tab="settings">Objectifs & données</button>
+</nav>
+<section id="today">
+<div class="card"><h2>Mon bilan du jour</h2><div class="stats">
+<div class="stat"><small>Calories consommées</small><strong id="sumKcal">0</strong><small>kcal</small></div>
+<div class="stat"><small>Objectif calories</small><strong id="goalKcal">2100</strong><small>kcal / jour</small></div>
+<div class="stat"><small>Protéines</small><strong id="sumProtein">0</strong><small>grammes</small></div>
+<div class="stat"><small>Reste estimé</small><strong id="remaining">2100</strong><small>kcal</small></div>
+</div><div class="bar"><span id="progress"></span></div><div class="muted" id="progressText">0 % de l’objectif</div>
+<label for="selectedDate">Date du journal</label><input id="selectedDate" type="date">
+</div>
+<div class="card"><h2>Repas enregistrés</h2><div id="todayEntries"></div><p class="muted" id="emptyDay">Aucun aliment pour cette date. Ajoute ton premier repas.</p></div>
+<div class="warning"><b>À propos de ta santé :</b> la fatigue et la chute de cheveux justifient un rendez-vous médical. Une anémie est possible mais pas la seule cause. Évite un déficit calorique important et ne prends pas de fer sans avis médical.</div>
+</section>
+<section id="add" class="hidden">
+<div class="card"><h2>Ajouter un aliment</h2>
+<label for="mealDate">Date</label><input id="mealDate" type="date">
+<label for="mealType">Repas</label><select id="mealType"><option>Petit-déjeuner</option><option>Déjeuner</option><option>Collation</option><option>Dîner</option></select>
+<label for="foodSelect">Aliment</label><select id="foodSelect"></select>
+<div class="grid2"><div><label for="quantity">Quantité (g ou ml)</label><input id="quantity" type="number" min="1" value="100" inputmode="decimal"></div><div><label>Estimation</label><input id="estimate" disabled value="—"></div></div>
+<p class="notice">Les valeurs sont données pour 100 g ou 100 ml. Pour le riz, les pâtes et la viande, choisis le poids cuit ou cru correspondant à l’aliment indiqué.</p>
+<button class="primary" id="addFood">Ajouter au journal</button>
+</div>
+<div class="card"><h2>Ajouter un produit personnalisé</h2><p class="notice">Utilise les valeurs de l’étiquette nutritionnelle, pour 100 g ou 100 ml.</p>
+<label for="customName">Nom du produit</label><input id="customName" placeholder="Ex. céréales de ma marque">
+<div class="grid2"><div><label for="customKcal">Calories / 100 g</label><input id="customKcal" type="number" min="0" placeholder="350"></div><div><label for="customProtein">Protéines / 100 g</label><input id="customProtein" type="number" min="0" placeholder="8"></div></div>
+<button class="secondary" id="saveCustom">Enregistrer ce produit</button>
+</div>
+</section>
+<section id="weight" class="hidden">
+<div class="card"><h2>Suivi du poids</h2><p class="notice">Pèse-toi dans des conditions similaires, par exemple le matin après être allé aux toilettes. Regarde la tendance, pas une seule mesure.</p>
+<label for="weightDate">Date</label><input id="weightDate" type="date">
+<label for="weightValue">Poids (kg)</label><input id="weightValue" type="number" min="20" max="400" step="0.1" placeholder="85.0" inputmode="decimal">
+<button class="primary" id="saveWeight">Enregistrer mon poids</button>
+<div id="weightList"></div>
+</div>
+</section>
+<section id="settings" class="hidden">
+<div class="card"><h2>Mes objectifs</h2>
+<label for="calorieGoal">Objectif calories (kcal/jour)</label><input id="calorieGoal" type="number" min="1000" max="5000" value="2100">
+<label for="proteinGoal">Repère protéines (g/jour)</label><input id="proteinGoal" type="number" min="0" max="300" value="120">
+<label for="startingWeight">Poids de départ (kg)</label><input id="startingWeight" type="number" min="20" max="400" step="0.1" value="85">
+<button class="primary" id="saveSettings">Enregistrer les objectifs</button>
+<p class="notice">L’objectif de 2 100 kcal est provisoire et peut ne pas convenir à tout le monde. Il ne tient pas compte d’un diagnostic médical, et ne doit pas remplacer un avis professionnel, surtout en cas de fatigue persistante.</p>
+</div>
+<div class="card"><h2>Sauvegarde et transfert</h2><p class="notice">Les données sont enregistrées dans le stockage local de ce navigateur sur ce téléphone. Elles ne se synchronisent pas automatiquement entre appareils. Exporte régulièrement une sauvegarde JSON.</p>
+<button class="secondary" id="exportData">Exporter une sauvegarde</button>
+<label for="importFile">Importer une sauvegarde existante</label><input id="importFile" type="file" accept=".json,application/json">
+<button class="secondary danger" id="clearData">Effacer toutes mes données</button>
+<p class="notice">Si tu effaces les données du navigateur ou désinstalles/réinitialises le navigateur, les données locales peuvent disparaître. Garde une sauvegarde.</p>
+</div>
+<div class="card"><h2>Repères de santé</h2><p class="notice">L’application fournit des estimations nutritionnelles, pas un diagnostic ni une prescription. Consulte un médecin pour la fatigue et la perte de cheveux, et demande-lui si un bilan (par exemple NFS/ferritine selon ton contexte) est indiqué. N’utilise pas de supplément de fer sans avis médical.</p></div>
+</section>
+<div class="foot">Version personnelle • fonctionnement hors ligne après première ouverture si hébergée en HTTPS</div>
+</main>
+<script>
+const KEY='monSuiviCalories.v1';
+const foods=[
+['Œuf entier',143,13,'g'],['Pain complet',250,9,'g'],['Lait demi-écrémé',46,3.4,'ml'],['Huile d’olive',884,0,'g'],
+['Poulet cuit',165,31,'g'],['Riz blanc cuit',130,2.7,'g'],['Pâtes cuites',155,5.5,'g'],['Brocoli',35,2.4,'g'],
+['Lentilles cuites',116,9,'g'],['Banane',89,1.1,'g'],['Pomme',52,0.3,'g'],['Yaourt nature',60,4,'g'],
+['Flocons d’avoine',372,13.5,'g'],['Amandes',579,21,'g'],['Thon au naturel égoutté',116,26,'g'],
+['Pomme de terre cuite',87,1.9,'g'],['Bœuf maigre cuit',200,27,'g'],['Orange',47,0.9,'g'],
+['Boisson énergisante sucrée (indicatif)',45,0,'ml'],['Saumon cuit',206,22,'g'],['Pois chiches cuits',164,8.9,'g']
+];
+const $=id=>document.getElementById(id);
+const today=()=>new Date().toLocaleDateString('en-CA');
+let data={entries:[],weights:[],customFoods:[],settings:{calorieGoal:2100,proteinGoal:120,startingWeight:85}};
+function load(){try{const v=JSON.parse(localStorage.getItem(KEY));if(v)data={...data,...v,settings:{...data.settings,...(v.settings||{})}}}catch(e){}}
+function save(){localStorage.setItem(KEY,JSON.stringify(data));}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function allFoods(){return foods.map((f,i)=>({id:'f'+i,name:f[0],kcal:f[1],protein:f[2],unit:f[3]})).concat(data.customFoods.map((f,i)=>({...f,id:'c'+i,unit:'g'})))}
+function initFoods(){const s=$('foodSelect');s.innerHTML=allFoods().map(f=>`<option value="${f.id}">${esc(f.name)} — ${f.kcal} kcal/100${f.unit}</option>`).join('');updateEstimate()}
+function chosen(){return allFoods().find(f=>f.id===$('foodSelect').value)||allFoods()[0]}
+function updateEstimate(){const f=chosen();const q=Number($('quantity').value)||0;$('estimate').value=f?`${Math.round(f.kcal*q/100)} kcal · ${(f.protein*q/100).toFixed(1)} g prot.`:'—'}
+function dayEntries(){return data.entries.filter(e=>e.date===$('selectedDate').value)}
+function renderToday(){const es=dayEntries();const kcal=es.reduce((a,e)=>a+e.kcal,0),prot=es.reduce((a,e)=>a+e.protein,0),goal=Number(data.settings.calorieGoal)||2100,remain=goal-kcal;
+$('sumKcal').textContent=Math.round(kcal);$('sumProtein').textContent=Math.round(prot);$('goalKcal').textContent=goal;$('remaining').textContent=Math.round(remain);$('progress').style.width=Math.min(100,kcal/goal*100)+'%';$('progressText').textContent=`${Math.round(kcal/goal*100)} % de l’objectif · repère protéines : ${data.settings.proteinGoal} g`;
+$('todayEntries').innerHTML=es.map(e=>`<div class="logrow"><div class="grow"><b>${esc(e.name)}</b><div class="muted">${esc(e.meal)} · ${e.quantity} g/ml · ${Math.round(e.protein)} g protéines</div></div><div class="kcal">${Math.round(e.kcal)} kcal</div><button class="smallbtn" data-delete="${e.id}" aria-label="Supprimer">×</button></div>`).join('');
+$('emptyDay').classList.toggle('hidden',es.length>0);
+$('todayEntries').querySelectorAll('[data-delete]').forEach(b=>b.onclick=()=>{data.entries=data.entries.filter(e=>e.id!==b.dataset.delete);save();renderAll()});
+}
+function renderWeights(){const list=[...data.weights].sort((a,b)=>b.date.localeCompare(a.date));$('weightList').innerHTML=list.length?'<h3>Historique</h3>'+list.map(w=>`<div class="weighrow"><div class="grow">${esc(w.date)}</div><b>${w.value.toFixed(1)} kg</b><button class="smallbtn" data-wdel="${w.id}">×</button></div>`).join(''):'<p class="muted">Aucune mesure enregistrée pour le moment.</p>';$('weightList').querySelectorAll('[data-wdel]').forEach(b=>b.onclick=()=>{data.weights=data.weights.filter(w=>w.id!==b.dataset.wdel);save();renderWeights()})}
+function renderAll(){renderToday();renderWeights();$('calorieGoal').value=data.settings.calorieGoal;$('proteinGoal').value=data.settings.proteinGoal;$('startingWeight').value=data.settings.startingWeight}
+document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x===b));['today','add','weight','settings'].forEach(id=>$(id).classList.toggle('hidden',id!==b.dataset.tab));if(b.dataset.tab==='add'){$('mealDate').value=$('selectedDate').value||today();}});
+$('selectedDate').value=today();$('mealDate').value=today();$('weightDate').value=today();
+$('selectedDate').onchange=renderToday;$('foodSelect').onchange=updateEstimate;$('quantity').oninput=updateEstimate;
+$('addFood').onclick=()=>{const f=chosen(),q=Number($('quantity').value);if(!f||!q||q<=0)return alert('Indique une quantité valide.');data.entries.push({id:crypto.randomUUID?crypto.randomUUID():String(Date.now()),date:$('mealDate').value||today(),meal:$('mealType').value,name:f.name,quantity:q,kcal:f.kcal*q/100,protein:f.protein*q/100});$('selectedDate').value=$('mealDate').value||today();save();renderAll();document.querySelector('[data-tab="today"]').click();};
+$('saveCustom').onclick=()=>{const name=$('customName').value.trim(),kcal=Number($('customKcal').value),protein=Number($('customProtein').value);if(!name||$('customKcal').value===''||kcal<0||protein<0)return alert('Renseigne le nom, les calories et les protéines.');data.customFoods.push({name,kcal,protein});save();initFoods();$('customName').value='';$('customKcal').value='';$('customProtein').value='';alert('Produit enregistré.');};
+$('saveWeight').onclick=()=>{const value=Number($('weightValue').value);if(!value||value<20||value>400)return alert('Entre un poids valide en kg.');data.weights.push({id:crypto.randomUUID?crypto.randomUUID():String(Date.now()),date:$('weightDate').value||today(),value});save();renderWeights();$('weightValue').value='';};
+$('saveSettings').onclick=()=>{const c=Number($('calorieGoal').value),p=Number($('proteinGoal').value),w=Number($('startingWeight').value);if(c<1000||c>5000||p<0||p>300||w<20||w>400)return alert('Vérifie les valeurs saisies.');data.settings={calorieGoal:c,proteinGoal:p,startingWeight:w};save();renderAll();alert('Objectifs enregistrés.');};
+$('exportData').onclick=()=>{const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='sauvegarde-calories.json';a.click();URL.revokeObjectURL(url)};
+$('importFile').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{const incoming=JSON.parse(await file.text());if(!Array.isArray(incoming.entries)||!Array.isArray(incoming.weights))throw Error();if(!confirm('Importer cette sauvegarde et remplacer les données actuelles ?'))return;data={...data,...incoming,settings:{...data.settings,...incoming.settings}};save();initFoods();renderAll();alert('Sauvegarde importée.');}catch(err){alert('Fichier invalide ou incompatible.')}e.target.value=''};
+$('clearData').onclick=()=>{if(confirm('Effacer tous les repas, poids, produits et objectifs ? Exporte une sauvegarde avant si besoin.')){localStorage.removeItem(KEY);data={entries:[],weights:[],customFoods:[],settings:{calorieGoal:2100,proteinGoal:120,startingWeight:85}};initFoods();renderAll();}};
+load();initFoods();renderAll();
+if('serviceWorker' in navigator && location.protocol.startsWith('http'))window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+</script>
+</body>
+</html>
